@@ -1,4 +1,3 @@
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -9,14 +8,32 @@ const User = require("./models/user");
 
 const app = express();
 
+// CORS configuration
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://student-e7fb1eod0-bhargavi-9b86.vercel.app"
+];
 
-// Middleware
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests without an origin (such as server-to-server requests)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
+// Parse JSON requests
 app.use(express.json());
 
 // Authentication routes
 app.use("/api/auth", require("./routes/auth"));
+
+// Assignment routes
 app.use("/api/assignments", require("./routes/assignments"));
 
 // Home route
@@ -27,7 +44,8 @@ app.get("/", (req, res) => {
 // Protected dashboard route
 app.get("/api/dashboard", authMiddleware, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password");
+        const user = await User.findById(req.user.id)
+            .select("-password");
 
         if (!user) {
             return res.status(404).json({
@@ -74,8 +92,8 @@ async function startServer() {
         });
 
     } catch (error) {
-        console.log("MongoDB Connection Failed!");
-        console.log("Reason:", error.message);
+        console.error("MongoDB Connection Failed!");
+        console.error("Reason:", error.message);
     }
 }
 
